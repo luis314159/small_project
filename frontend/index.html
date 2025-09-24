@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULSA Social Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <nav class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-blue-600">Social Network</h1>
+                <div class="space-x-4">
+                    <a href="index.html" class="text-gray-600 hover:text-blue-600 font-medium">Home</a>
+                    <a href="profile.html" class="text-gray-600 hover:text-blue-600 font-medium">Profile</a>
+                    <a href="login.html" class="text-gray-600 hover:text-blue-600 font-medium">Login</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Create Post Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Create New Post</h2>
+            <form id="post-form" class="space-y-4">
+                <div>
+                    <input 
+                        type="text" 
+                        id="title" 
+                        placeholder="Post title" 
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                </div>
+                <div>
+                    <textarea 
+                        id="body" 
+                        placeholder="Write your post..." 
+                        required
+                        rows="4"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    ></textarea>
+                </div>
+                <button 
+                    type="submit"
+                    class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors font-medium"
+                >
+                    Post
+                </button>
+            </form>
+        </div>
+
+        <!-- Posts Section -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-6 text-gray-800">Recent Posts</h2>
+            <div id="posts-container" class="space-y-4">
+                <!-- Posts will be loaded here -->
+            </div>
+            <div id="loading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="mt-2 text-gray-600">Loading posts...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:8001';
+
+        // Load posts when page loads
+        document.addEventListener('DOMContentLoaded', loadPosts);
+
+        // Handle post creation
+        document.getElementById('post-form').addEventListener('submit', createPost);
+
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${API_BASE}/posts`);
+                const posts = await response.json();
+                displayPosts(posts);
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                document.getElementById('posts-container').innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <p>Error loading posts. Make sure the API is running!</p>
+                    </div>
+                `;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayPosts(posts) {
+            const container = document.getElementById('posts-container');
+            
+            if (posts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <p>No posts yet. Be the first to post!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${post.title}</h3>
+                    <p class="text-gray-600 mb-3">${post.body}</p>
+                    <div class="flex justify-between items-center text-sm text-gray-500">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">@${post.username}</span>
+                        <span>${new Date(post.created_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function createPost(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const body = document.getElementById('body').value;
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            
+            // Disable button while posting
+            submitButton.disabled = true;
+            submitButton.textContent = 'Posting...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title,
+                        body,
+                        user_id: 1 // Hardcoded for simplicity
+                    })
+                });
+                
+                if (response.ok) {
+                    // Clear form and reload posts
+                    document.getElementById('post-form').reset();
+                    loadPosts();
+                    
+                    // Show success message
+                    showNotification('Post created successfully!', 'success');
+                } else {
+                    throw new Error('Failed to create post');
+                }
+            } catch (error) {
+                console.error('Error creating post:', error);
+                showNotification('Error creating post. Please try again.', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Post';
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

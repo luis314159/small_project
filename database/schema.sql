@@ -554,3 +554,10 @@ uvicorn main:app --reload
 - **Integración** (25%): Los componentes trabajan juntos
 - **Documentación** (20%): Código y proyecto bien documentado
 - **Trabajo en equipo** (15%): Colaboración efectiva y distribución de tareas
+
+**Funcionalidades mínimas para aprobar:**
+- ✅ Crear usuarios
+- ✅ Crear y mostrar posts
+- ✅ Seguir usuarios
+- ✅ Frontend conectado con backend
+- ✅ Base de datos funcionando
